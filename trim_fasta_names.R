@@ -1,0 +1,6 @@
+library(tidyverse)
+library(phylotools)
+data <- read.fasta("C:/Users/hasna/Documents/MSc_project/kallisto/kallisto/AtRTD2_QUASI_no_linebreaks.fasta")
+data$seq.name <- str_extract(data$seq.name, '[^" "]+')
+data$seq.name <- paste(">", data$seq.name, sep = "")
+write.table(data, "C:/Users/hasna/Documents/MSc_project/kallisto/kallisto/AtRTD2_QUASI_no_linebreaks_short_names.fasta", sep = "\n", col.names = F, row.names = F, quote = F)
