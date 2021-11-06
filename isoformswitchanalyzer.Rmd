@@ -28,8 +28,12 @@ aSwitchList <- isoformSwitchTestDEXSeq(aSwitchList, reduceToSwitchingGenes = F)
 
 #we're missing some steps here, which is hindering what we can actually visualize. need to add some more functions here...
 
-aSwitchList <- addORFfromGTF(aSwitchList, pathToGTF = "kallisto/AtRTD2_QUASI.gtf")
+#this is broken cause the gtf don't have cds yet...
+#aSwitchList <- addORFfromGTF(aSwitchList, pathToGTF = "kallisto/AtRTD2_QUASI.gtf")
 #convert gtf to gff3, add cds to exons, then convert back -_-
+#analyzeNovelOsoformORF might alos be a ood bet, since we have mostly novel isoforms here
+#perhaps before we do this, we should add ORFs for all the standard transcripts from the ensembl GTF, thouhg idk if they'd have the same names...
+#plus it seems like we can make our own pfam figures anyway...
 
 #AS analysis
 aSwitchList <- analyzeAlternativeSplicing(aSwitchList)
@@ -100,3 +104,61 @@ switchPlotGeneExp(smallSwitchList, gene = 'AT3G55330', condition1 = "K20d", cond
 switchPlotIsoExp(smallSwitchList, gene = 'AT3G55330', condition1 = "K20d", condition2 = "K20w")
 switchPlotIsoUsage(smallSwitchList, gene = 'AT3G55330', condition1 = "K20d", condition2 = "K20w")
 ```
+
+AT1G22850
+```{r}
+switchPlotGeneExp(smallSwitchList, gene = 'AT1G22850', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoExp(smallSwitchList, gene = 'AT1G22850', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT1G22850', condition1 = "K20d", condition2 = "K20w")
+```
+
+AT3G23400 (FIB4)
+```{r}
+switchPlotGeneExp(smallSwitchList, gene = 'AT3G23400', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoExp(smallSwitchList, gene = 'AT3G23400', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT3G23400', condition1 = "K20d", condition2 = "K20w")
+```
+
+AT5G22640(EMB1211)
+```{r}
+switchPlotGeneExp(smallSwitchList, gene = 'AT5G22640', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoExp(smallSwitchList, gene = 'AT5G22640', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT5G22640', condition1 = "K20d", condition2 = "K20w")
+```
+
+AT4G24750 (STR11)
+```{r}
+switchPlotGeneExp(smallSwitchList, gene = 'AT4G24750', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoExp(smallSwitchList, gene = 'AT4G24750', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT4G24750', condition1 = "K20d", condition2 = "K20w")
+```
+
+AT3G44990 (XTH31)
+```{r}
+switchPlotGeneExp(smallSwitchList, gene = 'AT3G44990', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoExp(smallSwitchList, gene = 'AT3G44990', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT3G44990', condition1 = "K20d", condition2 = "K20w")
+```
+
+AT3G48570 (SEC61G3)
+```{r}
+switchPlotGeneExp(smallSwitchList, gene = 'AT3G48570', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoExp(smallSwitchList, gene = 'AT3G48570', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT3G48570', condition1 = "K20d", condition2 = "K20w")
+```
+
+```{r}
+#i hate the plots this package is making, so imma make my own. write a ggplot function and save it nice and call it later. then we can make pretty figures for anything shared or presented.
+smallSwitchList$isoformFeatures
+test <- smallSwitchList$isoformFeatures %>% filter(condition_1 == "K20d", condition_2 == "K20w", gene_id == "AT2G36390")
+test
+#ok, so if we pull filter by condition_1, condition_2 and gene_id, we'll get the right rows. 
+#for geneExp, we plot gene_value_1 and gene_value_2, plus or minus gene_stderr_1 and gene_stderr_2
+#for isoExp, we plot iso_value_1 and iso_value_2, plus or minus iso_stderr_1 and iso_stderr_2
+#for isoUsage, we plot iso_value_1 over gene-value_1, and iso_value_2 over gene_value_2, plus or minus iso_stderr_1 over gene_value_1 and iso_stderr_2 over gene-value_2
+#the only q-value we have is for isoform usage, but that's the main graph anyway
+#but seeing as I'm never going to be able to justify that, it would be best to run an in-house test to see if isoform usage is different between treatments and annotate significance that way
+#can we do pairwise t-test and apply a Bonferroni correction, or similar?
+#and ffs make the axis labels bigger...
+```
+
