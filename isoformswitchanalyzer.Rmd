@@ -1,0 +1,102 @@
+---
+title: "isoformswitchanalyzer"
+output: html_document
+---
+
+documentation here: https://bioconductor.org/packages/release/bioc/vignettes/IsoformSwitchAnalyzeR/inst/doc/IsoformSwitchAnalyzeR.html#overview-of-alternative-splicing-workflow
+```{r}
+library(IsoformSwitchAnalyzeR)
+library(tidyverse)
+```
+
+import data
+```{r}
+kallistoQuant <- importIsoformExpression(parentDir = "kallisto/for_real_output")
+myDesign <- data.frame(sampleID =  c("D6K20d2_191011_NextSeq.fastq.gz", "D6K20d3_191011_NextSeq.fastq.gz",  "D6K20W1_191011_NextSeq.fastq.gz", "D6Krw1_191011_NextSeq.fastq.gz", "D6Krw3_191011_NextSeq.fastq.gz", "D6L20d1_190919_NextSeq.fastq.gz", "D6L20d2_190919_NextSeq.fastq.gz", "D6L20d3_190919_NextSeq.fastq.gz", "D6L20W1_190903_NextSeq_R1.fastq.gz", "D6L20W2_190903_NextSeq_R1.fastq.gz", "D6L20W3_190903_NextSeq_R1.fastq.gz", "D6L40d1_190903_NextSeq_R1.fastq.gz", "D6L40d2_190903_NextSeq_R1.fastq.gz", "D6L40d3_190919_NextSeq.fastq.gz", "D6L40W1_190903_NextSeq_R1.fastq.gz", "D6L40W2_190903_NextSeq_R1.fastq.gz", "D6L40W3_190903_NextSeq_R1.fastq.gz", "D6L60d1_190903_NextSeq_R1.fastq.gz", "D6L60d2_190903_NextSeq_R1.fastq.gz", "D6L60d3_190903_NextSeq_R1.fastq.gz", "D6L60W1_190903_NextSeq_R1.fastq.gz", "D6L60W2_190903_NextSeq_R1.fastq.gz", "D6L60W3_190903_NextSeq_R1.fastq.gz", "D6Lrw1_190919_NextSeq.fastq.gz", "D6Lrw2_190919_NextSeq.fastq.gz", "D6Lrw3_190919_NextSeq.fastq.gz", "D7K20d2_191011_NextSeq.fastq.gz", "D7K20d5_191011_NextSeq.fastq.gz", "D7K20W1_191011_NextSeq.fastq.gz", "D7K20W2_191011_NextSeq.fastq.gz", "D7K40d1_191011_NextSeq.fastq.gz", "D7K40d2_191011_NextSeq.fastq.gz", "D7K40W2_190919_NextSeq.fastq.gz", "D7K40W3_191011_NextSeq.fastq.gz", "D7K40W4_191011_NextSeq.fastq.gz", "D7K60d1_190919_NextSeq.fastq.gz", "D7K60d2_190919_NextSeq.fastq.gz", "D7K60d3_191011_NextSeq.fastq.gz", "D7K60W2_190919_NextSeq.fastq.gz", "D7K60W3_190919_NextSeq.fastq.gz", "D7K60W4_190919_NextSeq.fastq.gz",  "D7Krw2_190919_NextSeq.fastq.gz"), condition = rep(c("K20d", "K20w", "Krw", "L20d", "L20w", "L40d", "L40w", "L60d", "L60w", "Lrw", "K20d", "K20w", "K40d", "K40w", "K60d", "K60w", "Krw"), times = c(2, 1, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 3, 3, 3, 1)))
+myDesign$sampleID <- as.factor(myDesign$sampleID)
+myDesign$condition <- as.factor(myDesign$condition)
+aSwitchList <- importRdata(isoformCountMatrix = kallistoQuant$counts, isoformRepExpression = kallistoQuant$abundance, designMatrix = myDesign, isoformExonAnnoation = "kallisto/AtRTD2_QUASI.gtf", isoformNtFasta = "kallisto/AtRTD2_QUASI.fasta")
+#summary(aSwitchList)
+
+#remove non-expressed isoforms, or genes with only 1 isoform (ie uninteresting things)
+aSwitchList <- preFilter(aSwitchList)
+
+#identify differentially used isoforms
+#i suspect this test will be overly conservative, since it's doing every pairwise comparison of treatment groups. have to see what to do about that...
+#be very careful with this, it takes 211 min to run -_-
+aSwitchList <- isoformSwitchTestDEXSeq(aSwitchList, reduceToSwitchingGenes = F)
+
+#we're missing some steps here, which is hindering what we can actually visualize. need to add some more functions here...
+
+aSwitchList <- addORFfromGTF(aSwitchList, pathToGTF = "kallisto/AtRTD2_QUASI.gtf")
+#convert gtf to gff3, add cds to exons, then convert back -_-
+
+#AS analysis
+aSwitchList <- analyzeAlternativeSplicing(aSwitchList)
+```
+
+data preprocessing done. Should note that the chunk above takes 5ish hours to run locally. would be a good idea to run this overnight to work on the next day when needed. 
+```{r}
+#bar graph of AS events across comparisons
+#this takes ~1h to run
+pdf(file = 'extractSplicingSummary_all.pdf', onefile = FALSE, height=100, width = 50)
+extractSplicingSummary(aSwitchList, asFractionTotal = F, plotGenes = F)
+dev.off()
+```
+ok, so this works, but as expected, the table is a little too large to be useful. let's try subsetting, and pulling out only events of interest.
+
+```{r}
+smallSwitchList <- subsetSwitchAnalyzeRlist(aSwitchList, aSwitchList$isoformFeatures$condition_1 == "K20d")
+```
+
+
+```{r}
+pdf(file = 'extractSplicingSummary_K20d.pdf', onefile = FALSE, height=100, width = 50)
+extractSplicingSummary(smallSwitchList, asFractionTotal = F, plotGenes = F, splicingToAnalyze = c("A3", "A5", "ES", "IR"), localTheme = theme(text = element_text(size = 80)))
+dev.off()
+```
+
+let's see if SBE2.1 shows differential isoform expression in K20d vs K20w
+```{r}
+switchPlot(
+    smallSwitchList,
+    gene='AT2G36390',
+    condition1 = 'K20d',
+    condition2 = 'K20w',
+    localTheme = theme_bw(base_size = 60)
+)
+```
+perhaps not... so what are the top genes then?
+
+```{r}
+k20dk20w <- subset(
+    extractTopSwitches(
+        smallSwitchList,
+        n = 10000000,
+        inEachComparison = F,
+    )[,c('gene_id','condition_1','condition_2','gene_switch_q_value','Rank')]
+)
+
+k20dk20w <- k20dk20w %>% filter(condition_2 == "K20w")
+#392 genes show significant isoform switching
+#At2G36390 not in 'em
+#write.table(k20dk20w, "dAS_analysis/dAS_K20dK20w.txt", col.names = T, row.names = F, sep = "\t", quote = F)
+```
+
+```{r}
+switchPlotTranscript(smallSwitchList, gene = 'AT2G36390', condition1 = "K20d", condition2 = "K20w")
+```
+
+
+```{r}
+switchPlotGeneExp(smallSwitchList, gene = 'AT2G36390', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoExp(smallSwitchList, gene = 'AT2G36390', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT2G36390', condition1 = "K20d", condition2 = "K20w")
+```
+
+let's look at PPL1 (PSBP-like protein 1)
+```{r}
+switchPlotGeneExp(smallSwitchList, gene = 'AT3G55330', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoExp(smallSwitchList, gene = 'AT3G55330', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT3G55330', condition1 = "K20d", condition2 = "K20w")
+```
