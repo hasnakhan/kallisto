@@ -1,0 +1,105 @@
+---
+title: "vast_kallisto_comparison"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+K20dK20w comparison:
+```{r}
+kallisto_k20dk20w <- read_delim("dAS_K20dK20w_kallisto.txt", col_names = T, delim = "\t")
+vast_k20dk20w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K20d-K20w_68events/K20d-K20w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k20dk20w %>% filter(gene_id %in% vast_k20dk20w$GeneID)
+#huh, wild so only 7 are present in both...
+```
+
+K20dL20d comparison: 
+```{r}
+kallisto_k20dl20d <- read_delim("dAS_K20dL20d_kallisto.txt", col_names = T, delim = "\t")
+vast_k20dl20d <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K20d-L20d_327events/K20d-L20d_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k20dl20d %>% filter(gene_id %in% vast_k20dl20d$GeneID)
+```
+
+K20wL20w comparison:
+```{r}
+kallisto_k20wl20w <- read_delim("dAS_K20wL20w_kallisto.txt", col_names = T, delim = "\t")
+vast_k20wl20w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K20w-L20w_196events/K20w-L20w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k20wl20w %>% filter(gene_id %in% vast_k20wl20w$GeneID)
+```
+
+K40dK40w comparison:
+```{r}
+kallisto_k40dk40w <- read_delim("dAS_K40dK40w_kallisto.txt", col_names = T, delim = "\t")
+vast_k40dk40w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K40d-K40w_23events/K40d-K40w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k40dk40w %>% filter(gene_id %in% vast_k40dk40w$GeneID)
+```
+
+K40dL40d comparison: 
+```{r}
+kallisto_k40dl40d <- read_delim("dAS_K40dL40d_kallisto.txt", col_names = T, delim = "\t")
+vast_k40dl40d <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K40d-L40d_168events/K40d-L40d_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k40dl40d %>% filter(gene_id %in% vast_k40dl40d$GeneID)
+```
+
+K40wL40w comparison:
+```{r}
+kallisto_k40wl40w <- read_delim("dAS_K40wL40w_kallisto.txt", col_names = T, delim = "\t")
+vast_k40wl40w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K40w-L40w_69events/K40w-L40w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k40wl40w %>% filter(gene_id %in% vast_k40wl40w$GeneID)
+```
+
+K60dK60w comparison:
+```{r}
+kallisto_k60dk60w <- read_delim("dAS_K60dK60w_kallisto.txt", col_names = T, delim = "\t")
+vast_k60dk60w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K60d-K60w_6events/K60d-K60w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k60dk60w %>% filter(gene_id %in% vast_k60dk60w$GeneID)
+```
+
+K60dL60d comparison: 
+```{r}
+kallisto_k60dl60d <- read_delim("dAS_K60dL60d_kallisto.txt", col_names = T, delim = "\t")
+vast_k60dl60d <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K60d-L60d_94events/K60d-L60d_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k60dl60d %>% filter(gene_id %in% vast_k60dl60d$GeneID)
+```
+
+K60wL60w comparison:
+```{r}
+kallisto_k60wl60w <- read_delim("dAS_K60wL60w_kallisto.txt", col_names = T, delim = "\t")
+vast_k60wl60w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/K60w-L60w_58events/K60w-L60w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_k60wl60w %>% filter(gene_id %in% vast_k60wl60w$GeneID)
+```
+
+L20dL20w comparison:
+```{r}
+kallisto_l20dl20w <- read_delim("dAS_L20dL20w_kallisto.txt", col_names = T, delim = "\t")
+vast_l20dl20w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/L20d-L20w_706events/L20d-L20w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_l20dl20w %>% filter(gene_id %in% vast_l20dl20w$GeneID)
+```
+
+L40dL40w comparison:
+```{r}
+kallisto_l40dl40w <- read_delim("dAS_L40dL40w_kallisto.txt", col_names = T, delim = "\t")
+vast_l40dl40w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/L40d-L40w_27events/L40d-L40w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_l40dl40w %>% filter(gene_id %in% vast_l40dl40w$GeneID)
+```
+
+L60dL60w comparison:
+```{r}
+kallisto_l60dl60w <- read_delim("dAS_L60dL60w_kallisto.txt", col_names = T, delim = "\t")
+vast_l60dl60w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps/L60d-L60w_5events/L60d-L60w_compare_ouput_complete.tab", col_names = T, delim = "\t")
+
+all <- kallisto_l60dl60w %>% filter(gene_id %in% vast_l60dl60w$GeneID)
+```
