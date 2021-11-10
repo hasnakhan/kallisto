@@ -162,3 +162,33 @@ test
 #and ffs make the axis labels bigger...
 ```
 
+let's see what genes are differentially spliced in each comparison of interest. Since ISAR did all the pairwise comps, the data is all here, we just have to filter it and write out some lists. then in kallisto/dAS_analysis/vast_kallisto_comparison.Rmd, we read that list back in and compare it to the corresponding vast list. This will tell us at a high level how much the two algorithms agree. The plan also includes a deeper dive into a handful of genes detected by only one algorithm, but for that we will focus on the K20d-K20w comparison, and assume the trends apply across the board (logically, they should)
+```{r}
+filter_by_conditions <- function (full_switch_list, cond1, cond2){
+    sub_switch_list <- subsetSwitchAnalyzeRlist(full_switch_list, full_switch_list$isoformFeatures$condition_1 == cond1)
+    sub_switch_list <- subset(
+        extractTopSwitches(
+            sub_switch_list,
+            n = 10000000,
+            inEachComparison = F,
+        )[,c('gene_id','condition_1','condition_2','gene_switch_q_value','Rank')]
+    )
+    sub_switch_list <- sub_switch_list %>% filter(condition_2 == cond2)
+    print(nrow(sub_switch_list))
+    write.table(sub_switch_list, paste("dAS_analysis/dAS_", cond1, cond2, "_kallisto.txt", sep = ""), col.names = T, row.names = F, sep = "\t", quote = F)
+}
+
+filter_by_conditions(aSwitchList, "K20d", "K20w")
+filter_by_conditions(aSwitchList, "K20d", "L20d")
+filter_by_conditions(aSwitchList, "K20w", "L20w")
+filter_by_conditions(aSwitchList, "K40d", "K40w")
+filter_by_conditions(aSwitchList, "K40d", "L40d")
+filter_by_conditions(aSwitchList, "K40w", "L40w")
+filter_by_conditions(aSwitchList, "K60d", "K60w")
+filter_by_conditions(aSwitchList, "K60d", "L60d")
+filter_by_conditions(aSwitchList, "K60w", "L60w")
+filter_by_conditions(aSwitchList, "L20d", "L20w")
+filter_by_conditions(aSwitchList, "L40d", "L40w")
+filter_by_conditions(aSwitchList, "L60d", "L60w")
+```
+
