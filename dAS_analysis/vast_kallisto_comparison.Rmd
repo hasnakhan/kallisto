@@ -103,3 +103,23 @@ vast_l60dl60w <- read_delim("../../vasttools/all_data/dPSI25_no_merging_all_reps
 
 all <- kallisto_l60dl60w %>% filter(gene_id %in% vast_l60dl60w$GeneID)
 ```
+
+within the K20dK20w comparison (and all the others), most genes predicted by one algorithm are not predicted by the other. Why?
+```{r}
+#first get a random sample of genes predicted by one alg but not the other
+kall_test <- sample(kallisto_k20dk20w$gene_id, 5)
+kall_test #"AT1G33490" "AT5G66600" "AT4G19600" "AT5G08180" "AT1G55490"
+vast_test <- sample(vast_k20dk20w$GeneID, 5) #had to run this a few times to get a list with no overlap in kallisto
+vast_test #"AT3G05500" "AT4G38630" "AT2G38670" "AT2G28550" "AT1G49740"
+```
+this will only work if the ISAR switch list is loaded
+```{r}
+#isoform fraction plots for all 5 kallisto-only genes (see weekly meetings doc for rationale)
+switchPlotIsoUsage(aSwitchList, gene = 'AT1G33490', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(aSwitchList, gene = 'AT5G66600', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(aSwitchList, gene = 'AT4G19600', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(aSwitchList, gene = 'AT5G08180', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(aSwitchList, gene = 'AT1G55490', condition1 = "K20d", condition2 = "K20w")
+```
+
+

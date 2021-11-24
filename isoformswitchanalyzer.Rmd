@@ -16,6 +16,8 @@ myDesign <- data.frame(sampleID =  c("D6K20d2_191011_NextSeq.fastq.gz", "D6K20d3
 myDesign$sampleID <- as.factor(myDesign$sampleID)
 myDesign$condition <- as.factor(myDesign$condition)
 aSwitchList <- importRdata(isoformCountMatrix = kallistoQuant$counts, isoformRepExpression = kallistoQuant$abundance, designMatrix = myDesign, isoformExonAnnoation = "kallisto/AtRTD2_QUASI.gtf", isoformNtFasta = "kallisto/AtRTD2_QUASI.fasta")
+#so this is important. remember how for kallisto we had to add transcript and gene features to the gtf, or else it wouldn't work? ISAR is the opposite: only exon features here pls.
+
 #summary(aSwitchList)
 
 #remove non-expressed isoforms, or genes with only 1 isoform (ie uninteresting things)
@@ -31,8 +33,8 @@ aSwitchList <- isoformSwitchTestDEXSeq(aSwitchList, reduceToSwitchingGenes = F)
 #this is broken cause the gtf don't have cds yet...
 #aSwitchList <- addORFfromGTF(aSwitchList, pathToGTF = "kallisto/AtRTD2_QUASI.gtf")
 #convert gtf to gff3, add cds to exons, then convert back -_-
-#analyzeNovelOsoformORF might alos be a ood bet, since we have mostly novel isoforms here
-#perhaps before we do this, we should add ORFs for all the standard transcripts from the ensembl GTF, thouhg idk if they'd have the same names...
+#analyzeNovelOsoformORF might also be a ood bet, since we have mostly novel isoforms here )or analyzeORF())
+#perhaps before we do this, we should add ORFs for all the standard transcripts from the ensembl GTF, though idk if they'd have the same names...
 #plus it seems like we can make our own pfam figures anyway...
 
 #AS analysis
@@ -138,6 +140,15 @@ AT3G44990 (XTH31)
 switchPlotGeneExp(smallSwitchList, gene = 'AT3G44990', condition1 = "K20d", condition2 = "K20w")
 switchPlotIsoExp(smallSwitchList, gene = 'AT3G44990', condition1 = "K20d", condition2 = "K20w")
 switchPlotIsoUsage(smallSwitchList, gene = 'AT3G44990', condition1 = "K20d", condition2 = "K20w")
+
+#as we'll probably be asked, it would be good to know what's going on with this gene in other conditions
+switchPlotIsoUsage(aSwitchList, gene = 'AT3G44990', condition1 = "K40d", condition2 = "K40w")
+switchPlotIsoUsage(aSwitchList, gene = 'AT3G44990', condition1 = "K60d", condition2 = "K60w")
+
+#leafs
+switchPlotIsoUsage(aSwitchList, gene = 'AT3G44990', condition1 = "L20d", condition2 = "L20w")
+switchPlotIsoUsage(aSwitchList, gene = 'AT3G44990', condition1 = "L40d", condition2 = "L40w")
+switchPlotIsoUsage(aSwitchList, gene = 'AT3G44990', condition1 = "L60d", condition2 = "L60w")
 ```
 
 AT3G48570 (SEC61G3)
@@ -157,9 +168,82 @@ test
 #for isoExp, we plot iso_value_1 and iso_value_2, plus or minus iso_stderr_1 and iso_stderr_2
 #for isoUsage, we plot iso_value_1 over gene-value_1, and iso_value_2 over gene_value_2, plus or minus iso_stderr_1 over gene_value_1 and iso_stderr_2 over gene-value_2
 #the only q-value we have is for isoform usage, but that's the main graph anyway
-#but seeing as I'm never going to be able to justify that, it would be best to run an in-house test to see if isoform usage is different between treatments and annotate significance that way
-#can we do pairwise t-test and apply a Bonferroni correction, or similar?
+#this is a mann-whitney u-test followed by FDR correction 
 #and ffs make the axis labels bigger...
+```
+
+
+ok, so let's try writing some plotting functions:
+```{r}
+AT3G44990 <- smallSwitchList$isoformFeatures %>% filter(condition_1 == "K20d", condition_2 == "K20w", gene_id == "AT3G44990")
+AT3G44990_short <- AT3G44990 %>% select(isoform_id, gene_id, condition_1, condition_2, gene_value_1, gene_value_2, gene_stderr_1, gene_stderr_2, iso_value_1, iso_value_2, iso_stderr_1, iso_stderr_2) %>% 
+    mutate(IF_1 = iso_value_1 / gene_value_1, IF_2 = iso_value_2 / gene_value_2, IF_stderr_1 = iso_stderr_1 / gene_value_1, IF_stderr_2 = iso_stderr_2 / gene_value_2) %>% 
+    pivot_longer(cols= c(gene_value_1, gene_value_2, gene_stderr_1, gene_stderr_2, iso_value_1, iso_value_2, iso_stderr_1, iso_stderr_2, IF_1, IF_2, IF_stderr_1, IF_stderr_2), names_to = "value_name", values_to= "value") %>% 
+    pivot_longer(cols = c(condition_1, condition_2), names_to = "condition_name", values_to = "condition") %>% 
+    filter(str_sub(condition_name, -1) == str_sub(value_name, -1)) %>% 
+    mutate(name = str_sub(value_name, 1, -3)) %>% 
+    select(-c(condition_name, value_name))
+    
+#i'm going to do my own calculation of IF, since this will also let me calculate the standard error. In doing so, i appreciate that my value will be slightly off from the ISAR value, since I will be missing the very low-expressed isoforms (<1 RPKM in both groups)
+
+#gene-level plot: 
+gene_plot <- AT3G44990_short %>% filter(name == "gene_value" | name == "gene_stderr") %>% 
+    pivot_wider(id_cols = c(isoform_id, gene_id, condition), names_from = name, values_from = value) %>%
+    slice(1:2) %>% 
+    ggplot(aes(x = condition, y = gene_value))+
+    geom_bar(position = position_dodge(), stat = "identity", fill = "cadetblue2")+
+    geom_errorbar(aes(ymin = gene_value - gene_stderr, ymax = gene_value + gene_stderr), width = 0.2)
+gene_plot
+
+#transcript-level plot:
+colour <- c("cadetblue2", "cadetblue3")
+
+trans_plot <- AT3G44990_short %>% filter(name == "iso_value" | name == "iso_stderr") %>% 
+    pivot_wider(id_cols = c(isoform_id, gene_id, condition), names_from = name, values_from = value) %>% 
+    ggplot(aes(x = isoform_id, y = iso_value, fill = condition))+
+    geom_bar(position = position_dodge(), stat = "identity")+
+    geom_errorbar(aes(ymin = iso_value - iso_stderr, ymax = iso_value + iso_stderr), width = 0.2, position = position_dodge(width = 0.9))+
+    scale_fill_manual(values = colour)
+trans_plot
+
+#IF plot:
+IF_plot <- AT3G44990_short %>% filter(name == "gene_value" | name == "iso_value" | name == "iso_stderr") %>% 
+    pivot_wider(id_cols = c(isoform_id, gene_id, condition), names_from = name, values_from = value) %>% 
+    mutate(IF = iso_value / gene_value, IF_stderr = iso_stderr / gene_value) %>% 
+    ggplot(aes(x = fct_rev(fct_infreq(isoform_id)), y = IF, fill = condition))+
+    geom_bar(position = position_dodge(), stat = "identity")+
+    geom_errorbar(aes(ymin = IF - IF_stderr, ymax = IF + IF_stderr), width = 0.2, position = position_dodge(width = .9))+
+    scale_fill_manual(values = colour, labels = c("Drought (20% SWC)", "Watered"))+
+    labs(x = "Isoform", y = "Isoform fraction")+
+    scale_x_discrete(labels= c("XTH31", "XTH31_IR"))+
+    theme(legend.title = element_blank())+
+    theme_minimal()
+IF_plot
+
+#get reps and do mann-whitney test:
+AT3G44990_iso_test <- aSwitchList$isoformRepExpression %>% filter(str_detect(isoform_id, "AT3G44990")) %>% 
+    select(c(isoform_id, contains("K20d")|contains("K20W"))) %>% 
+    pivot_longer(cols= 2:ncol(.), names_to = "sample", values_to = "expression") %>% 
+    mutate(group = str_sub(sample, 3, 6))
+JS1 <- filter(AT3G44990_iso_test, isoform_id == "AT3G44990_JS1")
+P1 <- filter(AT3G44990_iso_test, isoform_id == "AT3G44990_P1")
+wilcox.test(JS1$expression ~ JS1$group, alternative = "two.sided", exact = FALSE, correct = FALSE) #p = 0.03389
+wilcox.test(P1$expression ~ P1$group, alternative = "two.sided", exact = FALSE, correct = FALSE) #p = 0.2888
+p.adjust(c(0.03389, 0.2888), method = "BH") #p-adj:  0.06778 0.28880
+
+AT3G44990_gene_test <- AT3G44990_iso_test %>% 
+    group_by(sample) %>% 
+    summarize(gene_exp = sum(expression)) %>% 
+    mutate(group = str_sub(sample, 3, 6))
+wilcox.test(gene_exp ~ group, alternative = "two.sided", exact = FALSE, correct = FALSE, data = AT3G44990_gene_test) #p = 0.03389
+
+AT3G44990_if_test <- merge(AT3G44990_gene_test, AT3G44990_iso_test, by = 'sample', all.y = T)
+AT3G44990_if_test$IF <- AT3G44990_if_test$expression / AT3G44990_if_test$gene_exp
+JS1_IF <- filter(AT3G44990_if_test, isoform_id == "AT3G44990_JS1")
+P1_IF <- filter(AT3G44990_if_test, isoform_id == "AT3G44990_P1")
+wilcox.test(IF ~ group.x, alternative = "two.sided", exact = FALSE, correct = FALSE, data = JS1_IF) #p = 0.03389
+wilcox.test(IF ~ group.x, alternative = "two.sided", exact = FALSE, correct = FALSE, data = P1_IF) #p = 0.03389
+p.adjust(c(0.03389, 0.03389), method = "BH") #p-adj: 0.03389 0.03389
 ```
 
 let's see what genes are differentially spliced in each comparison of interest. Since ISAR did all the pairwise comps, the data is all here, we just have to filter it and write out some lists. then in kallisto/dAS_analysis/vast_kallisto_comparison.Rmd, we read that list back in and compare it to the corresponding vast list. This will tell us at a high level how much the two algorithms agree. The plan also includes a deeper dive into a handful of genes detected by only one algorithm, but for that we will focus on the K20d-K20w comparison, and assume the trends apply across the board (logically, they should)
