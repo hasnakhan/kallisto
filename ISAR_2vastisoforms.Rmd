@@ -1,0 +1,51 @@
+---
+title: "ISAR_2vastisoforms"
+output: html_document
+---
+
+remember that really awful day where we decided to manually add 2 vast-detected isoforms to the kallisto input transcriptome to see if it would detect them? this is that. same idea as isoformswitchanalyzer.Rmd, but with different input data.
+
+need to commit this in the morning!!
+
+```{r}
+library(IsoformSwitchAnalyzeR)
+library(tidyverse)
+```
+
+fix up the gtf we added the new isoforms to so that it's only exons
+```{r}
+old_gtf <- read_delim("kallisto/added_2isoforms.gtf", col_names = F, delim = "\t")
+new_gtf <- filter(old_gtf, X3 == "exon")
+write.table(new_gtf, "kallisto/added_2isoforms_exonsonly.gtf", col.names = F, row.names = F, quote = F, sep = "\t")
+```
+then i sorted this using gff3sort and saved it in added_2isoforms_exonsonly_sorted.gtf
+didn't work so i copy/pasted the exons into the AtRTD2 gtf in a group (by source and transcript name) like all the other exons, called it added_2isoforms_exonsonly_grouped.gtf
+
+import data
+```{r}
+kallistoQuant <- importIsoformExpression(parentDir = "kallisto/2vastisoforms")
+myDesign <- data.frame(sampleID =  c("D6K20d2_191011_NextSeq.fastq.gz", "D6K20d3_191011_NextSeq.fastq.gz",  "D6K20W1_191011_NextSeq.fastq.gz", "D6Krw1_191011_NextSeq.fastq.gz", "D6Krw3_191011_NextSeq.fastq.gz", "D6L20d1_190919_NextSeq.fastq.gz", "D6L20d2_190919_NextSeq.fastq.gz", "D6L20d3_190919_NextSeq.fastq.gz", "D6L20W1_190903_NextSeq_R1.fastq.gz", "D6L20W2_190903_NextSeq_R1.fastq.gz", "D6L20W3_190903_NextSeq_R1.fastq.gz", "D6L40d1_190903_NextSeq_R1.fastq.gz", "D6L40d2_190903_NextSeq_R1.fastq.gz", "D6L40d3_190919_NextSeq.fastq.gz", "D6L40W1_190903_NextSeq_R1.fastq.gz", "D6L40W2_190903_NextSeq_R1.fastq.gz", "D6L40W3_190903_NextSeq_R1.fastq.gz", "D6L60d1_190903_NextSeq_R1.fastq.gz", "D6L60d2_190903_NextSeq_R1.fastq.gz", "D6L60d3_190903_NextSeq_R1.fastq.gz", "D6L60W1_190903_NextSeq_R1.fastq.gz", "D6L60W2_190903_NextSeq_R1.fastq.gz", "D6L60W3_190903_NextSeq_R1.fastq.gz", "D6Lrw1_190919_NextSeq.fastq.gz", "D6Lrw2_190919_NextSeq.fastq.gz", "D6Lrw3_190919_NextSeq.fastq.gz", "D7K20d2_191011_NextSeq.fastq.gz", "D7K20d5_191011_NextSeq.fastq.gz", "D7K20W1_191011_NextSeq.fastq.gz", "D7K20W2_191011_NextSeq.fastq.gz", "D7K40d1_191011_NextSeq.fastq.gz", "D7K40d2_191011_NextSeq.fastq.gz", "D7K40W2_190919_NextSeq.fastq.gz", "D7K40W3_191011_NextSeq.fastq.gz", "D7K40W4_191011_NextSeq.fastq.gz", "D7K60d1_190919_NextSeq.fastq.gz", "D7K60d2_190919_NextSeq.fastq.gz", "D7K60d3_191011_NextSeq.fastq.gz", "D7K60W2_190919_NextSeq.fastq.gz", "D7K60W3_190919_NextSeq.fastq.gz", "D7K60W4_190919_NextSeq.fastq.gz",  "D7Krw2_190919_NextSeq.fastq.gz"), condition = rep(c("K20d", "K20w", "Krw", "L20d", "L20w", "L40d", "L40w", "L60d", "L60w", "Lrw", "K20d", "K20w", "K40d", "K40w", "K60d", "K60w", "Krw"), times = c(2, 1, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 3, 3, 3, 1)))
+myDesign$sampleID <- as.factor(myDesign$sampleID)
+myDesign$condition <- as.factor(myDesign$condition)
+aSwitchList <- importRdata(isoformCountMatrix = kallistoQuant$counts, isoformRepExpression = kallistoQuant$abundance, designMatrix = myDesign, isoformExonAnnoation = "kallisto/added_2isoforms_exonsonly_grouped.gtf", isoformNtFasta = "kallisto/added_2isoforms.fasta")
+#summary(aSwitchList)
+
+#remove non-expressed isoforms, or genes with only 1 isoform (ie uninteresting things)
+aSwitchList <- preFilter(aSwitchList)
+
+#identify differentially used isoforms
+#i suspect this test will be overly conservative, since it's doing every pairwise comparison of treatment groups. have to see what to do about that...
+#be very careful with this, it takes 211 min to run -_-
+aSwitchList <- isoformSwitchTestDEXSeq(aSwitchList, reduceToSwitchingGenes = F)
+
+#AS analysis
+aSwitchList <- analyzeAlternativeSplicing(aSwitchList)
+```
+
+re-run the dIF analysis for the 2 genes where we added transcripts: AT3G55330 and AT1G22850
+```{r}
+smallSwitchList <- subsetSwitchAnalyzeRlist(aSwitchList, aSwitchList$isoformFeatures$condition_1 == "K20d")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT3G55330', condition1 = "K20d", condition2 = "K20w")
+switchPlotIsoUsage(smallSwitchList, gene = 'AT1G22850', condition1 = "K20d", condition2 = "K20w")
+```
+
