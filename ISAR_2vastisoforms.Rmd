@@ -5,14 +5,13 @@ output: html_document
 
 remember that really awful day where we decided to manually add 2 vast-detected isoforms to the kallisto input transcriptome to see if it would detect them? this is that. same idea as isoformswitchanalyzer.Rmd, but with different input data.
 
-need to commit this in the morning!!
-
 ```{r}
 library(IsoformSwitchAnalyzeR)
 library(tidyverse)
 ```
 
 fix up the gtf we added the new isoforms to so that it's only exons
+don't need to run this every time
 ```{r}
 old_gtf <- read_delim("kallisto/added_2isoforms.gtf", col_names = F, delim = "\t")
 new_gtf <- filter(old_gtf, X3 == "exon")
